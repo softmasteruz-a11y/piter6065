@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PS FC League — Управление турнирами</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #090d16;
+      --bg-header: rgba(2, 6, 23, 0.9);
+      --border-header: rgba(30, 41, 59, 0.85);
+      --bg-card: rgba(15, 23, 42, 0.8);
+      --border-card: rgba(51, 65, 85, 0.65);
+      --bg-surface: rgba(15, 23, 42, 0.85);
+      --bg-input: #020617;
+      --bg-btn: #1e293b;
+      --bg-btn-hover: #334155;
+      --border-btn: #334155;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --divider: rgba(30, 41, 59, 0.75);
+      --row-hover: rgba(30, 41, 59, 0.45);
+      --modal-backdrop: rgba(2, 6, 23, 0.82);
+    }
+
+    html[data-theme="light"] {
+      --bg-page: #f1f5f9;
+      --bg-header: rgba(255, 255, 255, 0.92);
+      --border-header: rgba(203, 213, 225, 0.9);
+      --bg-card: rgba(255, 255, 255, 0.88);
+      --border-card: rgba(203, 213, 225, 0.9);
+      --bg-surface: rgba(248, 250, 252, 0.95);
+      --bg-input: #f8fafc;
+      --bg-btn: #e2e8f0;
+      --bg-btn-hover: #cbd5e1;
+      --border-btn: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --divider: rgba(226, 232, 240, 0.95);
+      --row-hover: rgba(241, 245, 249, 0.9);
+      --modal-backdrop: rgba(15, 23, 42, 0.55);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Hide number input arrows */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-card);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .surface-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+    }
+
+    .input-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-btn);
+      color: var(--text-main);
+    }
+
+    .btn-neutral {
+      background: var(--bg-btn);
+      border: 1px solid var(--border-btn);
+      color: var(--text-main);
+    }
+    .btn-neutral:hover {
+      background: var(--bg-btn-hover);
+    }
+
+    .text-main { color: var(--text-main); }
+    .text-muted { color: var(--text-muted); }
+    .text-subtle { color: var(--text-subtle); }
+    .border-divider { border-color: var(--divider); }
+
+    .tab-active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #022c22 !important;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- Floating Show Header Button (visible only when entire header is hidden) -->
+  <div id="floatingShowHeaderBar" class="hidden fixed top-3 right-3 z-50 flex items-center gap-2">
+    <span id="floatingTabBadge" class="text-[11px] font-semibold px-2.5 py-1.5 rounded-xl glass-card text-emerald-500 shadow-lg">
+      1. Состав и Пары
+    </span>
+    <button onclick="toggleFullHeader()" class="px-3 py-1.5 rounded-xl glass-card hover:border-emerald-500/60 text-main text-xs font-bold shadow-xl transition flex items-center gap-1.5" title="Развернуть верхнюю панель и меню">
+      <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 9l-7 7-7-7"/>
+      </svg>
+      <span>Показать меню</span>
+    </button>
+  </div>
+
+  <!-- Full Header (Top Bar + Navigation Tabs) -->
+  <header id="appHeader" class="sticky top-0 z-40 border-b backdrop-blur-md transition-colors" style="background: var(--bg-header); border-color: var(--border-header);">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-slate-950 font-extrabold text-lg shadow-lg shadow-emerald-500/20">
+          PS
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-main flex items-center gap-2 flex-wrap">
+            PS FC League
+            <span id="statusBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full btn-neutral">
+              Подготовка
+            </span>
+          </h1>
+          <p class="text-xs text-muted">Жеребьёвка пар · Календарь · Таблица и личные встречи</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="px-3 py-1.5 rounded-lg btn-neutral text-xs font-semibold transition flex items-center gap-1.5" title="Переключить тему интерфейса">
+          <span id="themeIcon">☀️</span>
+          <span id="themeLabel">Светлая</span>
+        </button>
+        <button onclick="copySummary()" class="px-3 py-1.5 rounded-lg btn-neutral text-xs font-medium transition flex items-center gap-1.5" title="Скопировать таблицу и результаты для мессенджера">
+          <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+          <span>Поделиться</span>
+        </button>
+        <button onclick="resetAllModal()" class="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 dark:text-rose-300 text-xs font-semibold border border-rose-500/40 transition">
+          Новый турнир
+        </button>
+        <button id="headerHideBtn" onclick="toggleFullHeader()" class="px-3 py-1.5 rounded-lg btn-neutral text-xs font-semibold transition flex items-center gap-1.5" title="Скрыть верхнюю панель и меню">
+          <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 15l7-7 7 7"/>
+          </svg>
+          <span>Скрыть</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div id="navWrapper" class="max-w-5xl mx-auto px-4 pb-3">
+      <nav id="navContainer" class="grid grid-cols-3 gap-1.5 p-1 rounded-xl surface-box">
+        <button id="tab-setup" onclick="switchTab('setup')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold text-muted hover:text-main transition flex items-center justify-center gap-1.5">
+          <span>1. Состав и Пары</span>
+        </button>
+        <button id="tab-matches" onclick="switchTab('matches')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold text-muted hover:text-main transition flex items-center justify-center gap-1.5">
+          <span>2. Календарь</span>
+          <span id="navMatchCount" class="hidden sm:inline-block text-[11px] px-1.5 py-0.5 rounded btn-neutral font-mono-num">0/0</span>
+        </button>
+        <button id="tab-table" onclick="switchTab('table')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold text-muted hover:text-main transition flex items-center justify-center gap-1.5">
+          <span>3. Таблица</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 space-y-6">
+
+    <!-- ==================== TAB 1: SETUP & DRAW ==================== -->
+    <section id="view-setup" class="space-y-6">
+
+      <!-- Step 1: Roster -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-main flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 text-xs flex items-center justify-center font-bold">1</span>
+              Участники турнира
+            </h2>
+            <p class="text-xs text-muted mt-0.5">Нажмите на игрока, чтобы включить или исключить его из текущего розыгрыша</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-500 border border-emerald-500/35">
+              Активно: <strong id="activeCount" class="font-mono-num">12</strong> чел.
+            </span>
+            <button onclick="selectAllPlayers()" class="text-xs px-2.5 py-1 rounded-lg btn-neutral transition">
+              Выбрать всех
+            </button>
+            <button onclick="restoreDefaultRoster()" class="text-xs px-2.5 py-1 rounded-lg btn-neutral transition" title="Вернуть 12 постоянных участников">
+              Сброс списка
+            </button>
+          </div>
+        </div>
+
+        <!-- Players Grid -->
+        <div id="playersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+
+        <!-- Add Guest Player -->
+        <form onsubmit="addCustomPlayer(event)" class="pt-2 flex gap-2">
+          <input id="newPlayerInput" type="text" maxlength="24" placeholder="Добавить временного игрока..." class="flex-1 input-box rounded-xl px-3.5 py-2 text-sm placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition" />
+          <button type="submit" class="px-4 py-2 rounded-xl btn-neutral text-emerald-500 text-sm font-semibold transition">
+            + Добавить
+          </button>
+        </form>
+      </div>
+
+      <!-- Step 2: Format & Draw Settings -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 space-y-5">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-main flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 text-xs flex items-center justify-center font-bold">2</span>
+            Параметры жеребьёвки и календаря
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Team Mode -->
+          <div class="p-3.5 rounded-xl surface-box space-y-2.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted block">Формат команд</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" id="btnModePairs" onclick="setTeamMode('pairs')" class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center">
+                Пары (2 на 2)
+              </button>
+              <button type="button" id="btnModeSolo" onclick="setTeamMode('solo')" class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center">
+                Одиночный (1 на 1)
+              </button>
+            </div>
+            <p id="modeHint" class="text-xs text-muted">Игроки случайным образом делятся на пары.</p>
+          </div>
+
+          <!-- Rounds Format -->
+          <div class="p-3.5 rounded-xl surface-box space-y-2.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted block">Формат турнира</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" id="btnRound1" onclick="setRounds(1)" class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center">
+                1 круг (Каждый с каждым)
+              </button>
+              <button type="button" id="btnRound2" onclick="setRounds(2)" class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center">
+                2 круга (Дома / Выезд)
+              </button>
+            </div>
+            <p id="roundHint" class="text-xs text-muted">Каждый играет с каждым по 1 разу.</p>
+          </div>
+        </div>
+
+        <div id="oddWarning" class="hidden p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-500 text-xs flex items-start gap-2">
+          <span class="text-base leading-none">⚠️</span>
+          <span id="oddWarningText"></span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <button onclick="performRandomDraw()" class="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Сформировать пары случайно</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Drawn Teams Preview & Start -->
+      <div id="drawnTeamsSection" class="hidden glass-card rounded-2xl p-4 sm:p-6 space-y-4 border-emerald-500/40">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-main flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs flex items-center justify-center font-extrabold">3</span>
+              Сформированные участники (<span id="teamsCountBadge" class="font-mono-num">0</span>)
+            </h2>
+            <p class="text-xs text-muted mt-0.5">Вы можете перетасовать пары заново или изменить название команды перед генерацией календаря</p>
+          </div>
+          <button onclick="performRandomDraw()" class="px-3 py-1.5 rounded-lg btn-neutral text-emerald-500 text-xs font-semibold transition">
+            🎲 Пережеребьёвка
+          </button>
+        </div>
+
+        <div id="teamsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+        <div class="pt-3 border-t border-divider flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-muted" id="calendarPreviewInfo"></div>
+          <button onclick="generateScheduleAndStart()" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-sm shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2">
+            <span>Создать календарь матчей →</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== TAB 2: MATCHES CALENDAR ==================== -->
+    <section id="view-matches" class="hidden space-y-5">
+
+      <!-- Progress & Filter Bar -->
+      <div class="glass-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-1 flex-1 min-w-[200px]">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-semibold text-main">Прогресс турнира</span>
+            <span id="progressText" class="font-mono-num text-emerald-500 font-bold">0 из 0 матчей</span>
+          </div>
+          <div class="w-full h-2 rounded-full btn-neutral overflow-hidden">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select id="roundFilter" onchange="renderMatches()" class="input-box rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-emerald-500">
+            <option value="all">Все туры</option>
+          </select>
+          <select id="statusFilter" onchange="renderMatches()" class="input-box rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-emerald-500">
+            <option value="all">Все матчи</option>
+            <option value="pending">Ожидают игры</option>
+            <option value="played">Сыгранные</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="noMatchesPlaceholder" class="hidden glass-card rounded-2xl p-10 text-center space-y-3">
+        <div class="text-3xl">⚽</div>
+        <h3 class="text-base font-bold text-main">Календарь ещё не сформирован</h3>
+        <p class="text-xs text-muted max-w-md mx-auto">Перейдите на вкладку «1. Состав и Пары», выберите участников и нажмите «Сформировать пары случайно».</p>
+        <button onclick="switchTab('setup')" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold">Перейти к настройке</button>
+      </div>
+
+      <!-- Rounds & Matches Container -->
+      <div id="matchesContainer" class="space-y-6"></div>
+
+    </section>
+
+    <!-- ==================== TAB 3: STANDINGS TABLE ==================== -->
+    <section id="view-table" class="hidden space-y-5">
+
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-divider flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-main">Турнирная таблица</h2>
+            <p class="text-xs text-muted mt-0.5">Победа: 3 очка · Ничья: 1 очко · Поражение: 0 очков</p>
+          </div>
+          <div class="text-[11px] text-muted surface-box px-3 py-1.5 rounded-lg">
+            Приоритет при равенстве: <span class="text-emerald-500 font-semibold">1. Разница мячей (РМ)</span> → <span class="text-cyan-500 font-semibold">2. Личные встречи</span>
+          </div>
+        </div>
+
+        <div id="emptyTablePlaceholder" class="hidden p-10 text-center space-y-3">
+          <div class="text-3xl">🏆</div>
+          <h3 class="text-base font-bold text-main">Нет активных команд</h3>
+          <p class="text-xs text-muted">Сначала сформируйте состав участников и запустите турнир.</p>
+        </div>
+
+        <div id="tableWrapper" class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-divider surface-box text-[11px] uppercase tracking-wider text-muted">
+                <th class="py-3 pl-4 pr-2 w-10 text-center">#</th>
+                <th class="py-3 px-3">Команда / Участники</th>
+                <th class="py-3 px-2 text-center" title="Сыграно матчей">И</th>
+                <th class="py-3 px-2 text-center" title="Победы">В</th>
+                <th class="py-3 px-2 text-center" title="Ничьи">Н</th>
+                <th class="py-3 px-2 text-center" title="Поражения">П</th>
+                <th class="py-3 px-2 text-center hidden sm:table-cell" title="Забитые и пропущенные мячи">Мячи</th>
+                <th class="py-3 px-2 text-center" title="Разница мячей">РМ</th>
+                <th class="py-3 pl-2 pr-4 text-center font-bold text-main" title="Очки">Очки</th>
+              </tr>
+            </thead>
+            <tbody id="standingsBody" class="divide-y border-divider text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tie-breaker legend / log -->
+      <div id="tieBreakerNotes" class="hidden glass-card rounded-2xl p-4 space-y-2 border-cyan-500/30">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-500 flex items-center gap-1.5">
+          <span>⚖️ Применённые правила при равенстве очков и разницы мячей</span>
+        </h3>
+        <ul id="tieBreakerList" class="text-xs text-muted space-y-1 list-disc list-inside"></ul>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="btn-neutral border-emerald-500/60 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      <span id="toastMsg">Сохранено</span>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 backdrop-blur-sm flex items-center justify-center p-4" style="background: var(--modal-backdrop);">
+    <div class="glass-card rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+      <h3 class="text-base font-bold text-main">Начать новый турнир?</h3>
+      <p class="text-xs text-muted leading-relaxed">Текущие пары, календарь и результаты матчей будут очищены. Список из 12 постоянных игроков сохранится.</p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl btn-neutral text-xs font-semibold">Отмена</button>
+        <button onclick="confirmResetTournament()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">Сбросить турнир</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== INITIAL DATA & STATE ====================
+    const DEFAULT_PLAYERS = [
+      "Улуғбек", "Элёр", "Эркин", "Фаррух", "Нурлан", "Фарход",
+      "Фархад", "Абдувохид", "Нодир", "Камол", "Фахриддин", "Бекзод"
+    ];
+
+    const STORAGE_KEY = 'ps_fc_league_state_v1';
+    const THEME_KEY = 'ps_fc_league_theme_v1';
+    const HEADER_HIDDEN_KEY = 'ps_fc_league_header_hidden_v1';
+
+    const TAB_LABELS = {
+      setup: '1. Состав и Пары',
+      matches: '2. Календарь',
+      table: '3. Таблица'
+    };
+
+    let state = {
+      players: [],       // { id, name, active, isDefault }
+      teamMode: 'pairs', // 'pairs' | 'solo'
+      rounds: 1,         // 1 | 2
+      teams: [],         // { id, name, members: [string] }
+      matches: [],       // { id, round, leg, homeId, awayId, homeScore, awayScore }
+      activeTab: 'setup',
+      tournamentStarted: false
+    };
+
+    let currentTheme = 'dark';
+    let isHeaderHidden = false;
+
+    function initHeaderVisibility() {
+      isHeaderHidden = localStorage.getItem(HEADER_HIDDEN_KEY) === 'true';
+      applyHeaderVisibility();
+    }
+
+    function applyHeaderVisibility() {
+      const appHeader = document.getElementById('appHeader');
+      const floatingBar = document.getElementById('floatingShowHeaderBar');
+
+      if (isHeaderHidden) {
+        appHeader.classList.add('hidden');
+        floatingBar.classList.remove('hidden');
+      } else {
+        appHeader.classList.remove('hidden');
+        floatingBar.classList.add('hidden');
+      }
+      updateActiveTabBadge();
+    }
+
+    function toggleFullHeader() {
+      isHeaderHidden = !isHeaderHidden;
+      localStorage.setItem(HEADER_HIDDEN_KEY, String(isHeaderHidden));
+      applyHeaderVisibility();
+    }
+
+    function updateActiveTabBadge() {
+      const badge = document.getElementById('floatingTabBadge');
+      if (badge) {
+        badge.textContent = TAB_LABELS[state.activeTab] || TAB_LABELS.setup;
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        currentTheme = savedTheme;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        currentTheme = 'light';
+      }
+      applyTheme(currentTheme);
+    }
+
+    function applyTheme(theme) {
+      currentTheme = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem(THEME_KEY, currentTheme);
+
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (currentTheme === 'light') {
+        icon.textContent = '🌙';
+        label.textContent = 'Тёмная';
+      } else {
+        icon.textContent = '☀️';
+        label.textContent = 'Светлая';
+      }
+
+      updateFormatHints();
+      renderDrawnTeams();
+      renderMatches();
+      renderStandings();
+    }
+
+    function toggleTheme() {
+      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+      showToast(currentTheme === 'light' ? 'Включена светлая тема' : 'Включена тёмная тема');
+    }
+
+    function init() {
+      initTheme();
+      initHeaderVisibility();
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+        } catch (e) {
+          initDefaultPlayers();
+        }
+      } else {
+        initDefaultPlayers();
+      }
+      renderAll();
+      switchTab(state.activeTab || 'setup');
+    }
+
+    function initDefaultPlayers() {
+      state.players = DEFAULT_PLAYERS.map((name, idx) => ({
+        id: 'p_' + (idx + 1),
+        name,
+        active: true,
+        isDefault: true
+      }));
+      saveState();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2400);
+    }
+
+    // ==================== NAVIGATION ====================
+    function switchTab(tab) {
+      state.activeTab = tab;
+      saveState();
+      updateActiveTabBadge();
+
+      ['setup', 'matches', 'table'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        const view = document.getElementById('view-' + t);
+        if (t === tab) {
+          btn.classList.add('tab-active');
+          btn.classList.remove('text-muted');
+          view.classList.remove('hidden');
+        } else {
+          btn.classList.remove('tab-active');
+          btn.classList.add('text-muted');
+          view.classList.add('hidden');
+        }
+      });
+
+      if (tab === 'matches') renderMatches();
+      if (tab === 'table') renderStandings();
+    }
+
+    // ==================== STEP 1: ROSTER MANAGEMENT ====================
+    function togglePlayer(id) {
+      const p = state.players.find(item => item.id === id);
+      if (!p) return;
+      p.active = !p.active;
+      saveState();
+      renderPlayers();
+      updateFormatHints();
+    }
+
+    function selectAllPlayers() {
+      state.players.forEach(p => p.active = true);
+      saveState();
+      renderPlayers();
+      updateFormatHints();
+    }
+
+    function restoreDefaultRoster() {
+      initDefaultPlayers();
+      renderPlayers();
+      updateFormatHints();
+      showToast('Восстановлены 12 постоянных участников');
+    }
+
+    function addCustomPlayer(e) {
+      e.preventDefault();
+      const input = document.getElementById('newPlayerInput');
+      const name = input.value.trim();
+      if (!name) return;
+
+      state.players.push({
+        id: 'p_custom_' + Date.now(),
+        name,
+        active: true,
+        isDefault: false
+      });
+      input.value = '';
+      saveState();
+      renderPlayers();
+      updateFormatHints();
+      showToast(`Добавлен участник: ${name}`);
+    }
+
+    function removeCustomPlayer(e, id) {
+      e.stopPropagation();
+      state.players = state.players.filter(p => p.id !== id);
+      saveState();
+      renderPlayers();
+      updateFormatHints();
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('playersGrid');
+      const activePlayers = state.players.filter(p => p.active);
+      document.getElementById('activeCount').textContent = activePlayers.length;
+
+      grid.innerHTML = state.players.map((p, index) => {
+        const activeClasses = p.active
+          ? 'bg-emerald-500/15 border-emerald-500/60 text-main shadow-sm'
+          : 'surface-box text-subtle opacity-70 hover:opacity-100';
+        const checkIcon = p.active
+          ? `<span class="w-5 h-5 rounded-md bg-emerald-500 text-slate-950 flex items-center justify-center text-xs font-extrabold shrink-0">✓</span>`
+          : `<span class="w-5 h-5 rounded-md input-box flex items-center justify-center text-xs text-transparent shrink-0">✓</span>`;
+
+        const deleteBtn = !p.isDefault
+          ? `<button onclick="removeCustomPlayer(event, '${p.id}')" class="ml-auto text-muted hover:text-rose-500 px-1 text-xs" title="Удалить">✕</button>`
+          : '';
+
+        return `
+          <div onclick="togglePlayer('${p.id}')" class="cursor-pointer select-none p-2.5 rounded-xl border transition flex items-center gap-2.5 ${activeClasses}">
+            ${checkIcon}
+            <div class="truncate">
+              <span class="text-[11px] font-mono-num text-subtle mr-1">${index + 1}.</span>
+              <span class="text-xs sm:text-sm font-semibold">${escapeHtml(p.name)}</span>
+            </div>
+            ${deleteBtn}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== STEP 2: SETTINGS & RANDOM DRAW ====================
+    function setTeamMode(mode) {
+      state.teamMode = mode;
+      saveState();
+      updateFormatHints();
+    }
+
+    function setRounds(r) {
+      state.rounds = r;
+      saveState();
+      updateFormatHints();
+    }
+
+    function updateFormatHints() {
+      const btnPairs = document.getElementById('btnModePairs');
+      const btnSolo = document.getElementById('btnModeSolo');
+      const btnR1 = document.getElementById('btnRound1');
+      const btnR2 = document.getElementById('btnRound2');
+
+      const activeBtnClass = currentTheme === 'light'
+        ? 'bg-emerald-500/20 border-emerald-600 text-emerald-800'
+        : 'bg-emerald-500/20 border-emerald-500 text-emerald-300';
+      const inactiveBtnClass = 'input-box text-muted hover:text-main';
+
+      btnPairs.className = `py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center ${state.teamMode === 'pairs' ? activeBtnClass : inactiveBtnClass}`;
+      btnSolo.className = `py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center ${state.teamMode === 'solo' ? activeBtnClass : inactiveBtnClass}`;
+
+      btnR1.className = `py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center ${state.rounds === 1 ? activeBtnClass : inactiveBtnClass}`;
+      btnR2.className = `py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold border transition text-center ${state.rounds === 2 ? activeBtnClass : inactiveBtnClass}`;
+
+      const activeCount = state.players.filter(p => p.active).length;
+      const oddWarning = document.getElementById('oddWarning');
+      const oddWarningText = document.getElementById('oddWarningText');
+
+      if (state.teamMode === 'pairs') {
+        const pairsCount = Math.ceil(activeCount / 2);
+        document.getElementById('modeHint').textContent = `Из ${activeCount} чел. получится ${pairsCount} ${pluralize(pairsCount, 'команда', 'команды', 'команд')}.`;
+        if (activeCount % 2 !== 0 && activeCount > 0) {
+          oddWarning.classList.remove('hidden');
+          oddWarningText.textContent = `Выбрано нечётное число игроков (${activeCount}). Один случайный участник будет играть один (1 против 2) или вы можете исключить/добавить 1 человека.`;
+        } else {
+          oddWarning.classList.add('hidden');
+        }
+      } else {
+        document.getElementById('modeHint').textContent = `Каждый из ${activeCount} игроков выступает самостоятельно.`;
+        oddWarning.classList.add('hidden');
+      }
+
+      document.getElementById('roundHint').textContent = state.rounds === 1
+        ? 'Круговая система: каждая пара/игрок встречается с остальными 1 раз.'
+        : 'Двухкруговой турнир: каждый играет с каждым дома и на выезде (2 матча).';
+    }
+
+    // Fisher-Yates unbiased shuffle
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function performRandomDraw() {
+      const activePlayers = state.players.filter(p => p.active);
+      if (activePlayers.length < 2) {
+        showToast('Выберите минимум 2 участников!');
+        return;
+      }
+
+      const shuffled = shuffleArray(activePlayers);
+      const newTeams = [];
+
+      if (state.teamMode === 'pairs') {
+        for (let i = 0; i < shuffled.length; i += 2) {
+          const p1 = shuffled[i];
+          const p2 = shuffled[i + 1];
+          if (p2) {
+            newTeams.push({
+              id: 't_' + (newTeams.length + 1),
+              name: `${p1.name} / ${p2.name}`,
+              members: [p1.name, p2.name]
+            });
+          } else {
+            newTeams.push({
+              id: 't_' + (newTeams.length + 1),
+              name: `${p1.name} (Соло)`,
+              members: [p1.name]
+            });
+          }
+        }
+      } else {
+        shuffled.forEach((p, idx) => {
+          newTeams.push({
+            id: 't_' + (idx + 1),
+            name: p.name,
+            members: [p.name]
+          });
+        });
+      }
+
+      state.teams = newTeams;
+      saveState();
+      renderDrawnTeams();
+      showToast('Жеребьёвка выполнена!');
+    }
+
+    function updateTeamName(teamId, newName) {
+      const t = state.teams.find(item => item.id === teamId);
+      if (t && newName.trim()) {
+        t.name = newName.trim();
+        saveState();
+      }
+    }
+
+    function renderDrawnTeams() {
+      const section = document.getElementById('drawnTeamsSection');
+      if (!state.teams || state.teams.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+
+      section.classList.remove('hidden');
+      document.getElementById('teamsCountBadge').textContent = state.teams.length;
+
+      const list = document.getElementById('teamsList');
+      list.innerHTML = state.teams.map((t, idx) => `
+        <div class="p-3 rounded-xl surface-box flex flex-col gap-1.5">
+          <div class="flex items-center justify-between text-[11px] text-muted">
+            <span class="font-mono-num font-bold text-emerald-500">Участник #${idx + 1}</span>
+            <span>${t.members.length === 2 ? 'Пара 2x2' : 'Соло'}</span>
+          </div>
+          <input
+            type="text"
+            value="${escapeHtml(t.name)}"
+            onchange="updateTeamName('${t.id}', this.value)"
+            class="input-box focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-sm font-bold focus:outline-none"
+          />
+          <div class="text-[11px] text-muted truncate">
+            Игроки: ${t.members.map(escapeHtml).join(' + ')}
+          </div>
+        </div>
+      `).join('');
+
+      const n = state.teams.length;
+      const matchesPerRound = (n * (n - 1)) / 2;
+      const totalMatches = matchesPerRound * state.rounds;
+      document.getElementById('calendarPreviewInfo').innerHTML =
+        `Будет сгенерировано <strong class="text-main font-mono-num">${totalMatches}</strong> ${pluralize(totalMatches, 'матч', 'матча', 'матчей')} (${state.rounds === 1 ? '1 круг' : '2 круга: Дома и Выезд'}).`;
+    }
+
+    // ==================== ROUND-ROBIN SCHEDULE GENERATOR ====================
+    function generateScheduleAndStart() {
+      if (state.teams.length < 2) {
+        showToast('Нужно минимум 2 команды для календаря');
+        return;
+      }
+
+      const teamsList = [...state.teams];
+      const hasBye = teamsList.length % 2 !== 0;
+      if (hasBye) {
+        teamsList.push({ id: 'BYE', name: 'Пропуск тура', members: [] });
+      }
+
+      const numTeams = teamsList.length;
+      const roundsCount = numTeams - 1;
+      const half = numTeams / 2;
+
+      const schedule = [];
+      const rotating = teamsList.slice(1);
+
+      for (let round = 0; round < roundsCount; round++) {
+        const currentRoundTeams = [teamsList[0], ...rotating];
+        for (let i = 0; i < half; i++) {
+          const t1 = currentRoundTeams[i];
+          const t2 = currentRoundTeams[numTeams - 1 - i];
+          if (t1.id !== 'BYE' && t2.id !== 'BYE') {
+            const isEvenRound = round % 2 === 0;
+            const home = isEvenRound ? t1 : t2;
+            const away = isEvenRound ? t2 : t1;
+            schedule.push({
+              id: `m_1_${round + 1}_${i}`,
+              round: round + 1,
+              leg: 1,
+              homeId: home.id,
+              awayId: away.id,
+              homeScore: null,
+              awayScore: null
+            });
+          }
+        }
+        rotating.unshift(rotating.pop());
+      }
+
+      if (state.rounds === 2) {
+        const leg1Count = schedule.length;
+        for (let i = 0; i < leg1Count; i++) {
+          const m = schedule[i];
+          schedule.push({
+            id: `m_2_${m.round}_${i}`,
+            round: m.round + roundsCount,
+            leg: 2,
+            homeId: m.awayId,
+            awayId: m.homeId,
+            homeScore: null,
+            awayScore: null
+          });
+        }
+      }
+
+      state.matches = schedule;
+      state.tournamentStarted = true;
+      saveState();
+      updateHeaderBadges();
+      switchTab('matches');
+      showToast('Календарь матчей успешно создан!');
+    }
+
+    // ==================== MATCHES RENDERING & SCORE INPUT ====================
+    function updateMatchScore(matchId, side, rawVal) {
+      const m = state.matches.find(item => item.id === matchId);
+      if (!m) return;
+
+      if (rawVal === '' || rawVal === null) {
+        if (side === 'home') m.homeScore = null;
+        if (side === 'away') m.awayScore = null;
+      } else {
+        const num = Math.max(0, Math.min(99, parseInt(rawVal, 10) || 0));
+        if (side === 'home') {
+          m.homeScore = num;
+          if (m.awayScore === null) m.awayScore = 0;
+        } else {
+          m.awayScore = num;
+          if (m.homeScore === null) m.homeScore = 0;
+        }
+      }
+
+      saveState();
+      updateHeaderBadges();
+      renderMatchesProgressOnly();
+      const card = document.getElementById('match-card-' + matchId);
+      if (card) {
+        const isPlayed = m.homeScore !== null && m.awayScore !== null;
+        card.classList.toggle('border-emerald-500/50', isPlayed);
+      }
+    }
+
+    function stepScore(matchId, side, delta) {
+      const m = state.matches.find(item => item.id === matchId);
+      if (!m) return;
+
+      if (m.homeScore === null) m.homeScore = 0;
+      if (m.awayScore === null) m.awayScore = 0;
+
+      if (side === 'home') {
+        m.homeScore = Math.max(0, Math.min(99, m.homeScore + delta));
+      } else {
+        m.awayScore = Math.max(0, Math.min(99, m.awayScore + delta));
+      }
+
+      saveState();
+      updateHeaderBadges();
+      renderMatches();
+    }
+
+    function clearMatchScore(matchId) {
+      const m = state.matches.find(item => item.id === matchId);
+      if (!m) return;
+      m.homeScore = null;
+      m.awayScore = null;
+      saveState();
+      updateHeaderBadges();
+      renderMatches();
+    }
+
+    function renderMatchesProgressOnly() {
+      const total = state.matches.length;
+      const played = state.matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+      const pct = total > 0 ? Math.round((played / total) * 100) : 0;
+
+      document.getElementById('progressText').textContent = `${played} из ${total} матчей (${pct}%)`;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+    }
+
+    function renderMatches() {
+      const placeholder = document.getElementById('noMatchesPlaceholder');
+      const container = document.getElementById('matchesContainer');
+
+      if (!state.matches || state.matches.length === 0) {
+        placeholder.classList.remove('hidden');
+        container.innerHTML = '';
+        renderMatchesProgressOnly();
+        return;
+      }
+
+      placeholder.classList.add('hidden');
+      renderMatchesProgressOnly();
+
+      const roundFilter = document.getElementById('roundFilter');
+      const currentRoundVal = roundFilter.value;
+      const uniqueRounds = [...new Set(state.matches.map(m => m.round))].sort((a, b) => a - b);
+
+      roundFilter.innerHTML = `<option value="all">Все туры (${uniqueRounds.length})</option>` +
+        uniqueRounds.map(r => `<option value="${r}" ${String(r) === currentRoundVal ? 'selected' : ''}>Тур ${r}</option>`).join('');
+
+      const selectedRound = roundFilter.value;
+      const selectedStatus = document.getElementById('statusFilter').value;
+
+      const teamMap = {};
+      state.teams.forEach(t => teamMap[t.id] = t);
+
+      const grouped = {};
+      state.matches.forEach(m => {
+        if (selectedRound !== 'all' && String(m.round) !== selectedRound) return;
+        const isPlayed = m.homeScore !== null && m.awayScore !== null;
+        if (selectedStatus === 'played' && !isPlayed) return;
+        if (selectedStatus === 'pending' && isPlayed) return;
+
+        if (!grouped[m.round]) grouped[m.round] = [];
+        grouped[m.round].push(m);
+      });
+
+      const roundKeys = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+      if (roundKeys.length === 0) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-8 text-center text-xs text-muted">Нет матчей по выбранному фильтру.</div>`;
+        return;
+      }
+
+      const winColor = currentTheme === 'light' ? 'text-emerald-600' : 'text-emerald-400';
+
+      container.innerHTML = roundKeys.map(rNum => {
+        const roundMatches = grouped[rNum];
+        const legLabel = state.rounds === 2
+          ? (roundMatches[0].leg === 1 ? '· 1-й круг (Дома)' : '· 2-й круг (Выезд)')
+          : '';
+
+        const cardsHtml = roundMatches.map(m => {
+          const home = teamMap[m.homeId] || { name: 'Команда 1' };
+          const away = teamMap[m.awayId] || { name: 'Команда 2' };
+          const isPlayed = m.homeScore !== null && m.awayScore !== null;
+
+          const homeWin = isPlayed && m.homeScore > m.awayScore;
+          const awayWin = isPlayed && m.awayScore > m.homeScore;
+
+          return `
+            <div id="match-card-${m.id}" class="p-3.5 sm:p-4 rounded-xl border transition surface-box ${isPlayed ? 'border-emerald-500/50' : ''}">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+
+                <!-- Home Team -->
+                <div class="flex-1 w-full sm:w-auto text-center sm:text-right">
+                  <div class="text-sm sm:text-base font-bold ${homeWin ? winColor : 'text-main'} truncate">
+                    ${escapeHtml(home.name)}
+                  </div>
+                  <div class="text-[11px] text-subtle">${state.rounds === 2 ? 'Дома' : 'Хозяева'}</div>
+                </div>
+
+                <!-- Score Controls -->
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                  <div class="flex items-center input-box rounded-xl p-1">
+                    <button type="button" onclick="stepScore('${m.id}', 'home', -1)" class="w-7 h-8 rounded-lg btn-neutral text-muted hover:text-main font-bold transition">−</button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      placeholder="–"
+                      value="${m.homeScore !== null ? m.homeScore : ''}"
+                      onchange="updateMatchScore('${m.id}', 'home', this.value)"
+                      class="w-10 h-8 bg-transparent text-center font-mono-num text-base sm:text-lg font-extrabold text-main focus:outline-none"
+                    />
+                    <button type="button" onclick="stepScore('${m.id}', 'home', 1)" class="w-7 h-8 rounded-lg btn-neutral text-emerald-500 font-bold transition">+</button>
+                  </div>
+
+                  <span class="text-subtle font-bold">:</span>
+
+                  <div class="flex items-center input-box rounded-xl p-1">
+                    <button type="button" onclick="stepScore('${m.id}', 'away', -1)" class="w-7 h-8 rounded-lg btn-neutral text-muted hover:text-main font-bold transition">−</button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      placeholder="–"
+                      value="${m.awayScore !== null ? m.awayScore : ''}"
+                      onchange="updateMatchScore('${m.id}', 'away', this.value)"
+                      class="w-10 h-8 bg-transparent text-center font-mono-num text-base sm:text-lg font-extrabold text-main focus:outline-none"
+                    />
+                    <button type="button" onclick="stepScore('${m.id}', 'away', 1)" class="w-7 h-8 rounded-lg btn-neutral text-emerald-500 font-bold transition">+</button>
+                  </div>
+                </div>
+
+                <!-- Away Team -->
+                <div class="flex-1 w-full sm:w-auto text-center sm:text-left flex items-center justify-center sm:justify-between gap-2">
+                  <div class="truncate">
+                    <div class="text-sm sm:text-base font-bold ${awayWin ? winColor : 'text-main'} truncate">
+                      ${escapeHtml(away.name)}
+                    </div>
+                    <div class="text-[11px] text-subtle">${state.rounds === 2 ? 'Выезд' : 'Гости'}</div>
+                  </div>
+                  ${isPlayed ? `<button onclick="clearMatchScore('${m.id}')" class="text-[11px] text-subtle hover:text-rose-500 px-1.5 py-1 rounded" title="Очистить счёт">✕</button>` : ''}
+                </div>
+
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="space-y-2.5">
+            <div class="flex items-center gap-2 px-1">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-500">Тур ${rNum}</span>
+              <span class="text-xs text-subtle">${legLabel}</span>
+              <div class="flex-1 h-px border-t border-divider"></div>
+            </div>
+            <div class="space-y-2.5">${cardsHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== STANDINGS & TIE-BREAKER ENGINE ====================
+    function calculateStandings() {
+      const statsMap = {};
+      state.teams.forEach(t => {
+        statsMap[t.id] = {
+          team: t,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          gf: 0,
+          ga: 0,
+          gd: 0,
+          points: 0,
+          h2hNote: ''
+        };
+      });
+
+      const playedMatches = state.matches.filter(m => m.homeScore !== null && m.awayScore !== null);
+
+      playedMatches.forEach(m => {
+        const home = statsMap[m.homeId];
+        const away = statsMap[m.awayId];
+        if (!home || !away) return;
+
+        home.played++;
+        away.played++;
+        home.gf += m.homeScore;
+        home.ga += m.awayScore;
+        away.gf += m.awayScore;
+        away.ga += m.homeScore;
+
+        if (m.homeScore > m.awayScore) {
+          home.won++;
+          home.points += 3;
+          away.lost++;
+        } else if (m.homeScore < m.awayScore) {
+          away.won++;
+          away.points += 3;
+          home.lost++;
+        } else {
+          home.drawn++;
+          away.drawn++;
+          home.points += 1;
+          away.points += 1;
+        }
+      });
+
+      Object.values(statsMap).forEach(s => {
+        s.gd = s.gf - s.ga;
+      });
+
+      const list = Object.values(statsMap);
+      const tieNotes = [];
+
+      const groups = {};
+      list.forEach(item => {
+        const key = `${item.points}_${item.gd}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+      });
+
+      const h2hStats = {};
+      Object.values(groups).forEach(group => {
+        if (group.length < 2) return;
+        const groupIds = new Set(group.map(g => g.team.id));
+
+        group.forEach(g => {
+          h2hStats[g.team.id] = { pts: 0, gd: 0, gf: 0, played: 0 };
+        });
+
+        const h2hMatches = playedMatches.filter(m => groupIds.has(m.homeId) && groupIds.has(m.awayId));
+        h2hMatches.forEach(m => {
+          const h = h2hStats[m.homeId];
+          const a = h2hStats[m.awayId];
+          h.played++;
+          a.played++;
+          h.gf += m.homeScore;
+          a.gf += m.awayScore;
+          h.gd += (m.homeScore - m.awayScore);
+          a.gd += (m.awayScore - m.homeScore);
+
+          if (m.homeScore > m.awayScore) h.pts += 3;
+          else if (m.homeScore < m.awayScore) a.pts += 3;
+          else { h.pts += 1; a.pts += 1; }
+        });
+
+        if (h2hMatches.length > 0) {
+          const names = group.map(g => g.team.name).join(' и ');
+          tieNotes.push(`Равенство очков (${group[0].points}) и РМ (${group[0].gd > 0 ? '+' + group[0].gd : group[0].gd}) у команд: ${names} — распределено по личным встречам.`);
+          group.forEach(g => {
+            const st = h2hStats[g.team.id];
+            if (st.played > 0) {
+              g.h2hNote = `Личн. встречи: ${st.pts} очк., РМ ${st.gd > 0 ? '+' + st.gd : st.gd}`;
+            }
+          });
+        }
+      });
+
+      list.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        const hA = h2hStats[a.team.id];
+        const hB = h2hStats[b.team.id];
+        if (hA && hB) {
+          if (hB.pts !== hA.pts) return hB.pts - hA.pts;
+          if (hB.gd !== hA.gd) return hB.gd - hA.gd;
+          if (hB.gf !== hA.gf) return hB.gf - hA.gf;
+        }
+        if (b.gf !== a.gf) return b.gf - a.gf;
+        return a.team.name.localeCompare(b.team.name);
+      });
+
+      return { standings: list, tieNotes };
+    }
+
+    function renderStandings() {
+      const emptyBox = document.getElementById('emptyTablePlaceholder');
+      const tableWrapper = document.getElementById('tableWrapper');
+      const tbody = document.getElementById('standingsBody');
+      const tieBox = document.getElementById('tieBreakerNotes');
+      const tieList = document.getElementById('tieBreakerList');
+
+      if (!state.teams || state.teams.length === 0) {
+        emptyBox.classList.remove('hidden');
+        tableWrapper.classList.add('hidden');
+        tieBox.classList.add('hidden');
+        return;
+      }
+
+      emptyBox.classList.add('hidden');
+      tableWrapper.classList.remove('hidden');
+
+      const { standings, tieNotes } = calculateStandings();
+      const isLight = currentTheme === 'light';
+
+      tbody.innerHTML = standings.map((row, idx) => {
+        const pos = idx + 1;
+        let posBadge = `<span class="font-mono-num text-xs font-bold text-muted">${pos}</span>`;
+        let rowHighlight = '';
+
+        if (pos === 1 && row.played > 0) {
+          posBadge = `<span class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-mono-num text-xs font-extrabold inline-flex items-center justify-center shadow shadow-amber-400/30">1</span>`;
+          rowHighlight = 'bg-amber-500/10';
+        } else if (pos === 2 && row.played > 0) {
+          posBadge = `<span class="w-6 h-6 rounded-full ${isLight ? 'bg-slate-300 text-slate-900' : 'bg-slate-300 text-slate-950'} font-mono-num text-xs font-extrabold inline-flex items-center justify-center">2</span>`;
+        } else if (pos === 3 && row.played > 0) {
+          posBadge = `<span class="w-6 h-6 rounded-full bg-amber-700 text-white font-mono-num text-xs font-extrabold inline-flex items-center justify-center">3</span>`;
+        }
+
+        const gdFormatted = row.gd > 0 ? `+${row.gd}` : `${row.gd}`;
+        const gdColor = row.gd > 0
+          ? (isLight ? 'text-emerald-600' : 'text-emerald-400')
+          : (row.gd < 0 ? (isLight ? 'text-rose-600' : 'text-rose-400') : 'text-muted');
+        const wonColor = isLight ? 'text-emerald-600' : 'text-emerald-400';
+        const lostColor = isLight ? 'text-rose-600' : 'text-rose-400';
+        const h2hColor = isLight ? 'text-cyan-700' : 'text-cyan-400';
+
+        return `
+          <tr class="transition ${rowHighlight}" onmouseover="this.style.background='var(--row-hover)'" onmouseout="this.style.background=''">
+            <td class="py-3.5 pl-4 pr-2 text-center">${posBadge}</td>
+            <td class="py-3.5 px-3">
+              <div class="font-bold text-main text-sm">${escapeHtml(row.team.name)}</div>
+              ${row.h2hNote ? `<div class="text-[11px] ${h2hColor} mt-0.5">${escapeHtml(row.h2hNote)}</div>` : ''}
+            </td>
+            <td class="py-3.5 px-2 text-center font-mono-num text-muted">${row.played}</td>
+            <td class="py-3.5 px-2 text-center font-mono-num ${wonColor}">${row.won}</td>
+            <td class="py-3.5 px-2 text-center font-mono-num text-muted">${row.drawn}</td>
+            <td class="py-3.5 px-2 text-center font-mono-num ${lostColor}">${row.lost}</td>
+            <td class="py-3.5 px-2 text-center font-mono-num text-muted hidden sm:table-cell">${row.gf}:${row.ga}</td>
+            <td class="py-3.5 px-2 text-center font-mono-num font-semibold ${gdColor}">${gdFormatted}</td>
+            <td class="py-3.5 pl-2 pr-4 text-center font-mono-num font-extrabold text-base text-main">${row.points}</td>
+          </tr>
+        `;
+      }).join('');
+
+      if (tieNotes.length > 0) {
+        tieBox.classList.remove('hidden');
+        tieList.innerHTML = tieNotes.map(n => `<li>${escapeHtml(n)}</li>`).join('');
+      } else {
+        tieBox.classList.add('hidden');
+      }
+    }
+
+    // ==================== HEADER, SHARE & RESET ====================
+    function updateHeaderBadges() {
+      const badge = document.getElementById('statusBadge');
+      const navCount = document.getElementById('navMatchCount');
+      const total = state.matches.length;
+      const played = state.matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+
+      if (total > 0) {
+        navCount.textContent = `${played}/${total}`;
+        if (played === total) {
+          badge.textContent = 'Завершён';
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40';
+        } else {
+          badge.textContent = 'Идёт турнир';
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/40';
+        }
+      } else {
+        navCount.textContent = '0/0';
+        badge.textContent = 'Подготовка';
+        badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full btn-neutral';
+      }
+    }
+
+    function copySummary() {
+      if (!state.teams || state.teams.length === 0) {
+        showToast('Сначала сформируйте команды!');
+        return;
+      }
+
+      const { standings } = calculateStandings();
+      let text = `🏆 PS FC LEAGUE — ТУРНИРНАЯ ТАБЛИЦА\n`;
+      text += `────────────────────\n`;
+      standings.forEach((r, i) => {
+        const gd = r.gd > 0 ? `+${r.gd}` : r.gd;
+        text += `${i + 1}. ${r.team.name} — ${r.points} очк. (И:${r.played}, РМ:${gd}, Мячи:${r.gf}-${r.ga})\n`;
+      });
+
+      const playedMatches = state.matches.filter(m => m.homeScore !== null && m.awayScore !== null);
+      if (playedMatches.length > 0) {
+        const teamMap = {};
+        state.teams.forEach(t => teamMap[t.id] = t.name);
+        text += `\n⚽ ПОСЛЕДНИЕ РЕЗУЛЬТАТЫ:\n`;
+        playedMatches.slice(-6).forEach(m => {
+          text += `• ${teamMap[m.homeId]} ${m.homeScore} : ${m.awayScore} ${teamMap[m.awayId]}\n`;
+        });
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Сводка скопирована в буфер обмена!');
+      }).catch(() => {
+        showToast('Не удалось скопировать');
+      });
+    }
+
+    function resetAllModal() {
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    function confirmResetTournament() {
+      state.teams = [];
+      state.matches = [];
+      state.tournamentStarted = false;
+      saveState();
+      closeConfirmModal();
+      renderAll();
+      switchTab('setup');
+      showToast('Турнир сброшен');
+    }
+
+    function renderAll() {
+      renderPlayers();
+      updateFormatHints();
+      renderDrawnTeams();
+      renderMatches();
+      renderStandings();
+      updateHeaderBadges();
+    }
+
+    // Helpers
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function pluralize(n, one, few, many) {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      if (mod10 === 1 && mod100 !== 11) return one;
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+      return many;
+    }
+
+    // Boot
+    init();
+  </script>
+</body>
+</html>
